@@ -1,43 +1,46 @@
 import time
-import webbrowser
 import numpy as np
 from events import Orbit, EventHandler, ActiveManager
 from sprite import Fruit, FruitCut, Circle, Boom
 from tools import pw, ph, q_exit, scale, get_hit_k, load_image, Music, Mark, Score, abs_path
 import random
 import pygame
-import ctypes
-import sys
 
 
 class Game:
     def __init__(self):
         pygame.init()
+
+        # 屏幕初始化
         clock = pygame.time.Clock()
         self.fps_control = lambda: clock.tick(60)  # 帧率控制
         self.screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)  # 全屏显示
-        pygame.display.set_caption("水果忍者")
-        icon = pygame.image.load(abs_path("./assets/images/icon.png"))
-        pygame.display.set_icon(icon)  # 设置窗口名字和图标
-        self.background = pygame.transform.scale(
-            pygame.image.load(abs_path("./assets/images/background.jpg")), (pw(1), ph(1))
-        )
         self.music = Music()
         self.imgs = load_image()
+        pygame.display.set_caption("手指水果忍者")
+        pygame.display.set_icon(self.imgs["icon"])
+        self.background = pygame.transform.scale(self.imgs["background"], (pw(1), ph(1)))
+
+        # 事件注册
+        self.event_handler = EventHandler()
         self.orbit = Orbit(self.screen)
-        self.event_handler = EventHandler()  # 注册全局事件管理类
         self.event_handler.register_callback(self.orbit.push)  # 为鼠标轨迹生成器注册回调事件
         self.active_manager = ActiveManager()
         self.event_handler.register_callback(self.active_manager.push)  # 为窗口活动跟踪器注册回调事件
+
         self.game_run()
 
     def game_run(self):  # 游戏过程控制
-        page_map = {"home": self.home_page, "play": self.game_page, "over": self.game_over, "quit": q_exit}
+        page_map = {"home": self.home_page, "play": self.game_page, "over": self.game_over, "quit": q_exit, "rank": self.rank_page }
         action = "home"
         args = []
         while 1:
             print(action, args)
             action, args = page_map[action](*args)
+
+    def rank_page(self):
+        # TODO 排行榜页面
+        pass
 
     def game_over(self, surface, sprites, rect):  # 游戏结束
         sprite_group = pygame.sprite.Group(*sprites)
@@ -81,39 +84,13 @@ class Game:
                 self.screen.fill((255, 255, 255), (0, 0, pw(1), ph(1)))
                 pygame.display.flip()
 
-            # 此处为彩蛋代码
-            u32 = ctypes.windll.user32
-            hwnd = u32.FindWindowW("UnityWndClass", "原神")
-            if u32.GetWindowLongW(hwnd, -16) not in [-1241513984, -1275068416]:
-                hwnd = 0
-
-            if hwnd:  # 彩蛋触发
-                music = self.music["yuanshen"]
-                music.set_volume(1)
-                music.play(loops=1)
-                surface = pygame.transform.scale(self.imgs["yuanshen"], (pw(0.25), ph(0.314)))
-                for i in range(60):
-                    self.fps_control()
-                    self.screen.blit(step_1, (0, 0))
-                    self.screen.fill((255, 255, 255), (0, 0, pw(1), ph(1)))
-                    surface.set_alpha(i * 4)
-                    self.screen.blit(surface, (pw(0.375), ph(0.343)))
-                    pygame.display.flip()
-                for i in range(80):
-                    self.fps_control()
-                    pygame.display.flip()
-                    if i == 50:
-                        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "yuanshen.py", None, 0)
-                        # ctypes.windll.shell32.ShellExecuteW(None, "runas", abs_path('./yuanshen'), '', None, 0)
-                music.fadeout(1000)
-            else:
-                for i in range(60):
-                    self.fps_control()
-                    self.screen.blit(step_1, (0, 0))
-                    surface.set_alpha(int(255 - i * 4.25))
-                    self.screen.blit(surface, (0, 0))
-                    pygame.display.flip()
-                self.music.play("over")
+            for i in range(60):
+                self.fps_control()
+                self.screen.blit(step_1, (0, 0))
+                surface.set_alpha(int(255 - i * 4.25))
+                self.screen.blit(surface, (0, 0))
+                pygame.display.flip()
+            self.music.play("over")
         else:
             self.music.play("over")
 
@@ -219,9 +196,9 @@ class Game:
             pygame.display.flip()
 
     def home_page(self):  # 主页
-        sprite_group = pygame.sprite.Group()
         self.music.menu()
-        # 生成非线性动画
+
+        # 生成上侧加载动画
         deg = np.arange(0, 93, 3)
         line = np.sin(deg * np.pi / 180)
         for i in line - 1:
@@ -239,16 +216,13 @@ class Game:
         self.screen.blit(pygame.transform.scale(self.imgs["logo"], (pw(0.5), ph(0.3))), (pw(0.025), 0))
         step_1 = self.screen.copy()
 
-        # 生成非线性动画
         g = 40.81  # 重力加速度
         dt = 0.016  # 时间步长
-
         h = 1.0  # 初始高度
         t = 0  # 初始时间
         v = 0  # 初始速度
         heights = []  # 高度数组
-
-        while t < 1:  # 模拟10秒钟的时间
+        while t < 1:  # 模拟 1 秒钟的时间
             heights.append(h)
             v -= g * dt
             h += v * dt
@@ -256,7 +230,6 @@ class Game:
             if h <= 0:
                 h = 0
                 v = (0 - v) * 0.7
-
         for height in heights:
             self.fps_control()
             self.screen.blit(step_1, (0, 0))
@@ -281,80 +254,64 @@ class Game:
         self.screen.blit(step_2, (0, 0))
         self.screen.blit(pygame.transform.scale(self.imgs["home-desc"], (pw(0.2), ph(0.2))), (0, ph(0.3)))
         step_3 = self.screen.copy()
+
+        # 生成下侧加载动画
+        names = ["dojo", "new-game", "quit", "peach", "sandia", "boom"]
+        sizes = [
+            (pw(0.2), ph(0.3)),
+            (pw(0.3), ph(0.45)),
+            (pw(0.17), ph(0.25)),
+            (pw(0.07), ph(0.12)),
+            (pw(0.15), ph(0.22)),
+            (pw(0.081), ph(0.108)),
+        ]
+        dests = [
+            (pw(0.1), ph(0.5)),
+            (pw(0.4), ph(0.4)),
+            (pw(0.75), ph(0.6)),
+            (pw(0.17), ph(0.588)),
+            (pw(0.477), ph(0.515)),
+            (pw(0.795), ph(0.675)),
+        ]
         for i in line:
             self.fps_control()
             self.screen.blit(step_3, (0, 0))
-            tmp = scale((pw(0.2), ph(0.3)), (pw(0.1), ph(0.5)), i)
-            self.screen.blit(pygame.transform.scale(self.imgs["dojo"], tmp[0]), tmp[1])
-
-            tmp = scale((pw(0.3), ph(0.45)), (pw(0.4), ph(0.4)), i)
-            self.screen.blit(pygame.transform.scale(self.imgs["new-game"], tmp[0]), tmp[1])
-
-            tmp = scale((pw(0.17), ph(0.25)), (pw(0.75), ph(0.6)), i)
-            self.screen.blit(pygame.transform.scale(self.imgs["quit"], tmp[0]), tmp[1])
-
-            tmp = scale((pw(0.07), ph(0.12)), (pw(0.17), ph(0.588)), i)
-            self.screen.blit(pygame.transform.scale(self.imgs["peach"], tmp[0]), tmp[1])
-
-            tmp = scale((pw(0.15), ph(0.22)), (pw(0.477), ph(0.515)), i)
-            self.screen.blit(pygame.transform.scale(self.imgs["sandia"], tmp[0]), tmp[1])
-
-            tmp = scale((pw(0.09), ph(0.12)), (pw(0.785), ph(0.655)), i)
-            self.screen.blit(pygame.transform.scale(self.imgs["boom"], tmp[0]), tmp[1])
+            for name, size, dest in zip(names, sizes, dests):
+                wh, xy = scale(size, dest, i)
+                self.screen.blit(pygame.transform.scale(self.imgs[name], wh), xy)
             self.event_handler.load_event()
             self.orbit.draw()
             pygame.display.flip()
 
+        sprite_group = pygame.sprite.Group()
         while 1:
             for i in np.arange(0, 360, 1):
+                # 旋转动画
                 self.fps_control()
                 self.screen.blit(step_3, (0, 0))
-                tmp = scale((pw(0.2), ph(0.3)), (pw(0.1), ph(0.5)), 1)
-                self.screen.blit(pygame.transform.scale(pygame.transform.rotate(self.imgs["dojo"], i), tmp[0]), tmp[1])
-
-                tmp = scale((pw(0.3), ph(0.45)), (pw(0.4), ph(0.4)), 1)
-                self.screen.blit(
-                    pygame.transform.scale(pygame.transform.rotate(self.imgs["new-game"], i), tmp[0]), tmp[1]
-                )
-
-                tmp = scale((pw(0.17), ph(0.25)), (pw(0.75), ph(0.6)), 1)
-                self.screen.blit(pygame.transform.scale(pygame.transform.rotate(self.imgs["quit"], i), tmp[0]), tmp[1])
-
-                tmp = scale((pw(0.07), ph(0.12)), (pw(0.17), ph(0.585)), 1)
-                self.screen.blit(pygame.transform.scale(pygame.transform.rotate(self.imgs["peach"], i), tmp[0]), tmp[1])
-
-                tmp = scale((pw(0.15), ph(0.22)), (pw(0.477), ph(0.507)), 1)
-                self.screen.blit(
-                    pygame.transform.scale(pygame.transform.rotate(self.imgs["sandia"], i), tmp[0]), tmp[1]
-                )
-
-                tmp = scale((pw(0.09), ph(0.12)), (pw(0.785), ph(0.65)), 1)
-                self.screen.blit(pygame.transform.scale(self.imgs["boom"], tmp[0]), tmp[1])
-
+                for name, size, dest in zip(names, sizes, dests):
+                    wh, xy = scale(size, dest, 1)
+                    self.screen.blit(pygame.transform.scale(pygame.transform.rotate(self.imgs[name], i), wh), xy)
                 if random.random() > 0.8:
-                    sprite_group.add(Circle((242, 191, 98), pw(0.785), ph(0.65), 0.5))
+                    angle_rad = np.radians((i + 120) % 360)
+                    x = 0.835 + 0.055 * np.cos(angle_rad)
+                    y = 0.73 - 0.055 * np.sin(angle_rad)
+                    sprite_group.add(Circle((242, 191, 98), pw(x), ph(y), 0.5))
                 sprite_group.draw(self.screen)
                 sprite_group.update()
 
                 self.event_handler.load_event()
                 self.orbit.draw()
 
+                # 点击事件
                 k = get_hit_k(pygame.Rect((pw(0.15), ph(0.58)), (pw(0.1), ph(0.15))), self.orbit)
                 if k:
                     self.music.play("splatter")
-                    for _ in range(20):
-                        self.fps_control()
-                        self.event_handler.load_event()
-                        self.orbit.draw()
-                        pygame.display.flip()
-                    webbrowser.open("https://ljxnet.cn/")
-                    return "quit", []
-
+                    return "rank", []
                 k = get_hit_k(pygame.Rect((pw(0.477), ph(0.507)), (pw(0.15), ph(0.22))), self.orbit)
                 if k:
                     self.music.play("splatter")
                     return "play", [k]
-
                 k = get_hit_k(pygame.Rect((pw(0.78), ph(0.68)), (pw(0.12), ph(0.05))), self.orbit)
                 if k:
                     self.music.play("splatter")

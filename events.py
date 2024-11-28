@@ -3,7 +3,7 @@ import time
 from tools import q_exit, ph
 
 
-# 全局时间管理类
+# 全局事件管理类
 class EventHandler:
     def __init__(self):
         self.push_list = []
