@@ -1,3 +1,4 @@
+import json
 import pygame
 import sys
 import math
@@ -100,7 +101,7 @@ class Score:
         font = pygame.font.SysFont(fonts, int(ph(0.0625)))
         text = f"{self.score}"
         font.bold = False
-        self.text_surface = font.render(text, False, (210, 113, 20))
+        self.text_surface = font.render(text, True, (210, 113, 20))
 
 
 # 音乐控制类
@@ -148,3 +149,24 @@ class Mark:
         elif self.mark == 0:
             self.frame.blit(pygame.transform.scale(self.imgs["xxxf"], (pw(0.06), ph(0.08))), (pw(0.94), ph(0.01)))
             self.game_over()
+
+
+def save_score(username, score):
+    data = load_score()
+    for i in range(len(data)):
+        if data[i]["username"] == username:
+            data[i]["score"] = score
+            break
+    else:
+        data.append({"username": username, "score": score})
+    with open("scores.sav", "w") as file:
+        json.dump(data, file)
+
+
+def load_score():
+    try:
+        with open("scores.sav", "r") as file:
+            data = json.load(file)
+    except:
+        data = []
+    return data

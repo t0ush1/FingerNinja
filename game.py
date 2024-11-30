@@ -1,8 +1,9 @@
+import string
 import time
 import numpy as np
 from events import Orbit, EventHandler, ActiveManager
 from sprite import Fruit, FruitCut, Circle, Boom
-from tools import pw, ph, q_exit, scale, get_hit_k, load_image, Music, Mark, Score, abs_path
+from tools import pw, ph, q_exit, save_score, scale, get_hit_k, load_image, Music, Mark, Score, abs_path
 import random
 import pygame
 
@@ -31,28 +32,82 @@ class Game:
         self.game_run()
 
     def game_run(self):  # 游戏过程控制
-        page_map = {"home": self.home_page, "play": self.game_page, "over": self.game_over, "quit": q_exit, "rank": self.rank_page }
-        action = "home"
-        args = []
+        page_map = {
+            "home": self.home_page,
+            "play": self.game_page,
+            "over": self.game_over,
+            "quit": q_exit,
+            "save": self.save_page,
+            "rank": self.rank_page,
+        }
+        action = "save"
+        args = [123]
         while 1:
             print(action, args)
             action, args = page_map[action](*args)
 
     def rank_page(self):
         # TODO 排行榜页面
-        pass
+        return "home", []
 
-    def game_over(self, surface, sprites, rect):  # 游戏结束
+    def save_page(self, score):
+        active = True
+        saved = False
+        username = ""
+        input_box = pygame.Rect(pw(0.4), ph(0.4), pw(0.2), ph(0.05))
+        button = pygame.Rect(pw(0.4), ph(0.5), pw(0.2), ph(0.05))
+        font = pygame.font.SysFont(pygame.font.get_fonts()[5], int(ph(0.04)))
+
+        while not saved:
+            self.fps_control()
+            self.screen.blit(self.background, (0, 0))
+
+            score_text = font.render(f"Score: {score}", True, (210, 113, 20))
+            user_text = font.render("Username:", True, (210, 113, 20))
+            input_text = font.render(username, True, (0, 0, 0))
+            button_text = font.render("Save", True, (210, 113, 20))
+
+            pygame.draw.rect(self.screen, (200, 200, 200), input_box, 0)
+            pygame.draw.rect(self.screen, (0, 0, 0) if active else (200, 200, 200), input_box, 2)
+            pygame.draw.rect(self.screen, (210, 113, 20), button, 2)
+            
+            self.screen.blit(score_text, (pw(0.4), ph(0.3)))
+            self.screen.blit(user_text, (input_box.x, input_box.y - ph(0.05)))
+            self.screen.blit(input_text, (input_box.x + pw(0.005), input_box.y))
+            self.screen.blit(button_text, (button.x + pw(0.07), button.y + ph(0.003)))
+
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    active = input_box.collidepoint(event.pos)
+                    if button.collidepoint(event.pos):
+                        save_score(username, score)
+                        saved = True
+                if event.type == pygame.KEYDOWN and active:
+                    if event.key == pygame.K_RETURN:
+                        save_score(username, score)
+                        saved = True
+                    elif event.key == pygame.K_BACKSPACE:
+                        username = username[:-1]
+                    elif event.unicode.isalnum() and len(username) < 10:
+                        username += event.unicode
+                pygame.event.post(event)
+            self.event_handler.load_event()
+            self.orbit.draw()
+            pygame.display.flip()
+        return "home", []
+
+    def game_over(self, surface, sprites, score, rect):  # 游戏结束
         sprite_group = pygame.sprite.Group(*sprites)
         for i in sprite_group:
             if isinstance(i, Fruit) or isinstance(i, Boom):
                 i.sprite_grop = sprite_group
 
-        # 生成非线性动画
+        # 炸弹爆炸动画
         deg = np.arange(0, 93, 3)
         line = np.sin(deg * np.pi / 180)
         step_1 = surface.copy()
         if rect:
+            # 粒子效果
             sprite_group.remove(*[i for i in sprites if isinstance(i, Circle)])
             circle_group = pygame.sprite.Group()
             for i in range(100):
@@ -67,33 +122,30 @@ class Game:
                 self.orbit.draw()
                 pygame.display.flip()
 
+            # 白光效果
             [i.kill() for i in sprite_group]
             surface = pygame.Surface([pw(1), pw(1)]).convert_alpha()
             surface.fill((255, 255, 255), (0, 0, pw(1), ph(1)))
-
             for i in range(3):
                 self.fps_control()
                 self.screen.blit(step_1, (0, 0))
                 surface.set_alpha(i * 85)
                 self.screen.blit(surface, (0, 0))
                 pygame.display.flip()
-
             for i in range(30):
                 self.fps_control()
                 self.screen.blit(step_1, (0, 0))
                 self.screen.fill((255, 255, 255), (0, 0, pw(1), ph(1)))
                 pygame.display.flip()
-
             for i in range(60):
                 self.fps_control()
                 self.screen.blit(step_1, (0, 0))
                 surface.set_alpha(int(255 - i * 4.25))
                 self.screen.blit(surface, (0, 0))
                 pygame.display.flip()
-            self.music.play("over")
-        else:
-            self.music.play("over")
-
+        
+        # gameover 入场动画
+        self.music.play("over")
         for i in line:
             self.fps_control()
             self.screen.blit(step_1, (0, 0))
@@ -105,6 +157,7 @@ class Game:
             self.orbit.draw()
             pygame.display.flip()
 
+        # gameover 停留
         for i in range(180):
             self.fps_control()
             self.screen.blit(step_1, (0, 0))
@@ -115,12 +168,13 @@ class Game:
             self.event_handler.load_event()
             self.orbit.draw()
             pygame.display.flip()
+        
         while 1:
             time.sleep(0.1)
             self.event_handler.load_event()
             if self.active_manager.active:
                 break
-        return "home", []
+        return "save", [score.score]
 
     def game_page(self, k):  # 游戏过程
         sprite_group = pygame.sprite.Group()
@@ -130,6 +184,7 @@ class Game:
         def game_over_callback(rect=None):
             return_message.append(rect)
 
+        # 开始特效
         self.music.game()
         self.music.play("start")
         sprite_group.add(FruitCut("sandia-1", pw(0.552), ph(0.502), -200, k, self.imgs))
@@ -137,37 +192,28 @@ class Game:
         for i in range(20):
             sprite_group.add(Circle((88, 135, 15), pw(0.552), ph(0.617), 2))
 
+        # 顶部图标入场动画
         self.screen.blit(self.background, (0, 0))
-        # 生成非线性动画
+        names = ["xxx", "xx", "x", "score"]
+        sizes = [(pw(0.06), ph(0.08)), (pw(0.04), ph(0.065)), (pw(0.035), ph(0.05)), (pw(0.06), ph(0.08))]
+        dests = [(pw(0.94), ph(0.01)), (pw(0.9), ph(0.01)), (pw(0.865), ph(0.01)), (pw(0.01), ph(0.01))]
+        deltas = [pw(0.06), pw(0.1), pw(0.135), -pw(0.05)]
         deg = np.arange(0, 93, 3)
         line = np.sin(deg * np.pi / 180)
         for i in 1 - line:
             self.fps_control()
             self.event_handler.load_event()
             self.screen.blit(self.background, (0, 0))
-            self.screen.blit(
-                pygame.transform.scale(self.imgs["xxx"], (pw(0.06), ph(0.08))), (pw(0.94) + i * pw(0.06), ph(0.01))
-            )
-            self.screen.blit(
-                pygame.transform.scale(self.imgs["xx"], (pw(0.04), ph(0.065))), (pw(0.9) + i * pw(0.1), ph(0.01))
-            )
-            self.screen.blit(
-                pygame.transform.scale(self.imgs["x"], (pw(0.035), ph(0.05))), (pw(0.865) + i * pw(0.135), ph(0.01))
-            )
-            self.screen.blit(
-                pygame.transform.scale(self.imgs["score"], (pw(0.06), ph(0.08))), (pw(0.01) - i * pw(0.05), ph(0.01))
-            )
+            for name, size, dest, delta in zip(names, sizes, dests, deltas):
+                self.screen.blit(pygame.transform.scale(self.imgs[name], size), (dest[0] + i * delta, dest[1]))
             self.screen.blit(score.text_surface, (pw(0.07) - i * pw(0.1), pw(0.01)))
             sprite_group.update()
             sprite_group.draw(self.screen)
             self.orbit.draw()
             pygame.display.flip()
-
         self.screen.blit(self.background, (0, 0))
-        self.screen.blit(pygame.transform.scale(self.imgs["xxx"], (pw(0.06), ph(0.08))), (pw(0.94), ph(0.01)))
-        self.screen.blit(pygame.transform.scale(self.imgs["xx"], (pw(0.04), ph(0.065))), (pw(0.9), ph(0.01)))
-        self.screen.blit(pygame.transform.scale(self.imgs["x"], (pw(0.035), ph(0.05))), (pw(0.865), ph(0.01)))
-        self.screen.blit(pygame.transform.scale(self.imgs["score"], (pw(0.06), ph(0.08))), (pw(0.01), ph(0.01)))
+        for name, size, dest in zip(names, sizes, dests):
+            self.screen.blit(pygame.transform.scale(self.imgs[name], size), dest)
         pygame.display.flip()
         step_1 = self.screen.copy()
 
@@ -177,7 +223,7 @@ class Game:
             if return_message:
                 self.screen.blit(step_1, (0, 0))
                 self.screen.blit(score.text_surface, (pw(0.07), pw(0.01)))
-                return "over", (self.screen, sprite_group, return_message[0])
+                return "over", (self.screen, sprite_group, score, return_message[0])
             index += 1
             self.fps_control()
             self.screen.blit(step_1, (0, 0))
@@ -188,7 +234,6 @@ class Game:
             if index % 60 == 0 and random.random() > 0.8:
                 sprite_group.add(Boom(self.imgs, self.music, sprite_group, self.orbit, game_over_callback))
                 self.music.play("throw")
-
             sprite_group.update()
             sprite_group.draw(self.screen)
             self.event_handler.load_event()
