@@ -1,9 +1,11 @@
 import json
+import platform
 import pygame
 import sys
 import math
 import os
 import ctypes
+
 
 # pygame.init()
 # display_info = pygame.display.Info()
@@ -11,8 +13,16 @@ import ctypes
 # ph=lambda x:display_info.current_h*x
 
 # 按屏幕分辨率百分比获取像素值
-user32 = ctypes.windll.user32
-screen_x, screen_y = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
+if platform.system() == "Windows":
+    user32 = ctypes.windll.user32
+    screen_x, screen_y = (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
+# for macos
+else:
+    import Quartz.CoreGraphics as CG
+    display_id = CG.CGMainDisplayID()
+    # 获取屏幕的宽度和高度
+    screen_x = CG.CGDisplayPixelsWide(display_id)
+    screen_y = CG.CGDisplayPixelsHigh(display_id)
 pw = lambda x: screen_x * x
 ph = lambda y: screen_y * y
 

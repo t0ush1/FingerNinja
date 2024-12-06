@@ -1,9 +1,10 @@
+import os
 import string
 import time
 import numpy as np
 from events import Orbit, EventHandler, ActiveManager
 from sprite import Fruit, FruitCut, Circle, Boom
-from tools import pw, ph, q_exit, save_score, scale, get_hit_k, load_image, Music, Mark, Score, abs_path
+from tools import pw, ph, q_exit, save_score,load_score, scale, get_hit_k, load_image, Music, Mark, Score, abs_path
 import random
 import pygame
 
@@ -46,9 +47,183 @@ class Game:
             print(action, args)
             action, args = page_map[action](*args)
 
+    def draw_leaderboard(self):
+        
+        # 加载资源
+        border_color = (255, 255, 255)  # 白色边框
+        title_font = pygame.font.Font(None, 64)
+        text_font = pygame.font.Font(None, 36)
+        border_color = (0, 255, 255)  # 边框为青色border_color = (0, 255, 255)  # 边框为青色
+        title_color = (255, 215, 0)  # 标题为金色
+        text_color = (255, 215, 0)  # 正常文本为白色
+        highlight_color = (255, 215, 0)  # 高亮的名字为金色
+        divider_color = (100, 100, 100)  # 分割线颜色为灰色
+
+        if os.path.isfile("./scores.sav"):
+            leaderboard = load_score()
+        else:
+            leaderboard = []
+
+        # 示例排行榜数据
+        '''
+        leaderboard = [
+            {"name": "Alice", "score": 150},
+            {"name": "Bob", "score": 120},
+            {"name": "Charlie", "score": 100},
+            {"name": "Dave", "score": 90},
+            {"name": "Eve", "score": 80},
+        ]
+        '''
+        # 填充背景色
+        #self.screen.fill(background_color)
+        # 计算排行榜窗口的大小
+        leaderboard_width = 600
+        leaderboard_height = 500
+        # 居中计算
+        window_x = (self.screen.get_width() - leaderboard_width) // 2
+        window_y = (self.screen.get_height() - leaderboard_height) // 2 + 90
+
+        # 绘制整体边框
+        pygame.draw.rect(self.screen, border_color, (window_x, window_y, leaderboard_width, leaderboard_height), 5)
+        
+        # 绘制标题
+        title = title_font.render("Leaderboard", True, title_color)
+        self.screen.blit(title, (window_x + 180, window_y +40))
+        
+        # 绘制分割线
+        pygame.draw.line(self.screen, divider_color, (window_x + 50, window_y + 120), (window_x + 550, window_y + 120), 2)
+
+        # 绘制排行榜条目
+        for i, entry in enumerate(leaderboard):
+            y_pos = window_y + 140 + i * 50  # 每个条目的垂直间距
+            name = entry['username']
+            score = entry['score']
+            text_color = (255, 255, 255)
+            
+            # 显示排名
+            rank_surface = text_font.render(f"{i + 1}.", True, text_color)
+            self.screen.blit(rank_surface, (window_x + 70, y_pos))
+            
+            # 显示玩家名字
+            name_surface = text_font.render(name, True, text_color)
+            self.screen.blit(name_surface, (window_x + 140, y_pos))
+            
+            # 显示分数
+            score_surface = text_font.render(str(score), True, text_color)
+            self.screen.blit(score_surface, (window_x + 450, y_pos))
+        
+        # 绘制底部装饰
+        pygame.draw.line(self.screen, divider_color,  (window_x + 50, window_y + 500), (window_x + 550, window_y + 500), 2)
+        
+
     def rank_page(self):
-        # TODO 排行榜页面
-        return "home", []
+        sprite_group = pygame.sprite.Group()
+        self.music.menu()
+        # 生成非线性动画
+        deg = np.arange(0, 93, 3)
+        line = np.sin(deg * np.pi / 180)
+        '''
+        for i in line - 1:
+            self.fps_control()
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(pygame.transform.scale(self.imgs["home-mask"], (pw(1), ph(0.4))), (0, i * ph(0.4)))
+            self.screen.blit(
+                pygame.transform.scale(self.imgs["logo"], (pw(0.5), ph(0.3))), (i * pw(0.1) + pw(0.025), i * ph(0.3))
+            )
+            self.event_handler.load_event()
+            self.orbit.draw()
+            pygame.display.flip()
+        '''
+        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(pygame.transform.scale(self.imgs["home-mask"], (pw(1), ph(0.4))), (0, 0))
+        self.screen.blit(pygame.transform.scale(self.imgs["logo"], (pw(0.5), ph(0.3))), (pw(0.025), 0))
+        step_1 = self.screen.copy()
+        
+        # 生成非线性动画
+        g = 40.81  # 重力加速度
+        dt = 0.016  # 时间步长
+
+        h = 1.0  # 初始高度
+        t = 0  # 初始时间
+        v = 0  # 初始速度
+        heights = []  # 高度数组
+
+        while t < 1:  # 模拟10秒钟的时间
+            heights.append(h)
+            v -= g * dt
+            h += v * dt
+            t += dt
+            if h <= 0:
+                h = 0
+                v = (0 - v) * 0.7
+
+        '''
+        for height in heights:
+            self.fps_control()
+            self.screen.blit(step_1, (0, 0))
+            self.screen.blit(
+                pygame.transform.scale(self.imgs["ninja"], (pw(0.33), ph(0.15))),
+                (pw(0.55), ph(0.1) - ph(0.15) * height),
+            )
+            self.event_handler.load_event()
+            self.orbit.draw()
+            pygame.display.flip()
+        '''
+        self.screen.blit(step_1, (0, 0))
+        self.screen.blit(pygame.transform.scale(self.imgs["ninja"], (pw(0.33), ph(0.15))), (pw(0.55), ph(0.1)))
+        step_2 = self.screen.copy()
+
+        '''
+        for i in line - 1:
+            self.fps_control()
+            self.screen.blit(step_2, (0, 0))
+            self.screen.blit(pygame.transform.scale(self.imgs["home-desc"], (pw(0.2), ph(0.2))), (i * pw(0.1), ph(0.3)))
+            self.event_handler.load_event()
+            self.orbit.draw()
+            pygame.display.flip()
+        self.screen.blit(step_2, (0, 0))
+        self.screen.blit(pygame.transform.scale(self.imgs["home-desc"], (pw(0.2), ph(0.2))), (0, ph(0.3)))
+        '''
+        step_3 = self.screen.copy()
+
+        for i in line:
+            self.fps_control()
+            self.screen.blit(step_3, (0, 0))
+            tmp = scale((pw(0.1), ph(0.15)), (pw(0.05), ph(0.77)), i)
+            self.screen.blit(pygame.transform.scale(self.imgs["dojo"], tmp[0]), tmp[1])
+
+            tmp = scale((pw(0.035), ph(0.06)), (pw(0.0846), ph(0.816)), i)
+            self.screen.blit(pygame.transform.scale(self.imgs["peach"], tmp[0]), tmp[1])
+
+            self.event_handler.load_event()
+            self.orbit.draw()
+            pygame.display.flip()
+
+        step_4 = self.screen.copy()
+        self.draw_leaderboard()
+        pygame.display.flip()
+
+        while 1:
+            for i in np.arange(0, 360, 1):
+                self.fps_control()
+                self.screen.blit(step_3, (0, 0))
+                tmp = scale((pw(0.1), ph(0.15)), (pw(0.05), ph(0.77)), 1)
+                self.screen.blit(pygame.transform.scale(pygame.transform.rotate(self.imgs["dojo"], i), tmp[0]), tmp[1])
+                tmp = scale((pw(0.035), ph(0.06)), (pw(0.0846), ph(0.816)), 1)
+                self.screen.blit(pygame.transform.scale(pygame.transform.rotate(self.imgs["peach"], i), tmp[0]), tmp[1])
+
+                #if random.random() > 0.8:
+                #    sprite_group.add(Circle((242, 191, 98), pw(0.785), ph(0.65), 0.5))
+                sprite_group.draw(self.screen)
+                sprite_group.update()
+
+                self.event_handler.load_event()
+                self.orbit.draw()
+                #k = get_hit_k(pygame.Rect((pw(0.15), ph(0.58)), (pw(0.1), ph(0.15))), self.orbit)
+                k = get_hit_k(pygame.Rect((pw(0.06), ph(0.75)), (pw(0.05), ph(0.05))), self.orbit)
+                if k:
+                    self.music.play("splatter")
+                    return "home", []
 
     def save_page(self, score):
         active = True
