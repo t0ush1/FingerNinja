@@ -48,11 +48,12 @@ class Game:
             print(action, args)
             action, args = page_map[action](*args)
 
-    def draw_leaderboard(self):
+    def draw_leaderboard(self, step):
         
+        self.screen.blit(step, (0, 0))
         # 加载资源
         border_color = (255, 255, 255)  # 白色边框
-        title_font = pygame.font.Font(None, 64)
+        title_font = pygame.font.Font(None, 52)
         text_font = pygame.font.Font(None, 36)
         border_color = (0, 255, 255)  # 边框为青色border_color = (0, 255, 255)  # 边框为青色
         title_color = (255, 215, 0)  # 标题为金色
@@ -78,40 +79,40 @@ class Game:
         # 填充背景色
         #self.screen.fill(background_color)
         # 计算排行榜窗口的大小
-        leaderboard_width = 600
-        leaderboard_height = 500
+        leaderboard_width = 500
+        leaderboard_height = 400
         # 居中计算
         window_x = (self.screen.get_width() - leaderboard_width) // 2
-        window_y = (self.screen.get_height() - leaderboard_height) // 2 + 90
+        window_y = (self.screen.get_height() - leaderboard_height) // 2 + 95
 
         # 绘制整体边框
         pygame.draw.rect(self.screen, border_color, (window_x, window_y, leaderboard_width, leaderboard_height), 5)
         
         # 绘制标题
         title = title_font.render("Leaderboard", True, title_color)
-        self.screen.blit(title, (window_x + 180, window_y +40))
+        self.screen.blit(title, (window_x + 130, window_y +30))
         
         # 绘制分割线
-        pygame.draw.line(self.screen, divider_color, (window_x + 50, window_y + 120), (window_x + 550, window_y + 120), 2)
+        pygame.draw.line(self.screen, divider_color, (window_x + 40, window_y + 90), (window_x + 460, window_y + 90), 2)
 
         # 绘制排行榜条目
         for i, entry in enumerate(leaderboard):
-            y_pos = window_y + 140 + i * 50  # 每个条目的垂直间距
+            y_pos = window_y + 120 + i * 40  # 每个条目的垂直间距
             name = entry['username']
             score = entry['score']
             text_color = (255, 255, 255)
             
             # 显示排名
             rank_surface = text_font.render(f"{i + 1}.", True, text_color)
-            self.screen.blit(rank_surface, (window_x + 70, y_pos))
+            self.screen.blit(rank_surface, (window_x + 60, y_pos))
             
             # 显示玩家名字
             name_surface = text_font.render(name, True, text_color)
-            self.screen.blit(name_surface, (window_x + 140, y_pos))
+            self.screen.blit(name_surface, (window_x + 120, y_pos))
             
             # 显示分数
             score_surface = text_font.render(str(score), True, text_color)
-            self.screen.blit(score_surface, (window_x + 450, y_pos))
+            self.screen.blit(score_surface, (window_x + 430, y_pos))
         
         # 绘制底部装饰
         pygame.draw.line(self.screen, divider_color,  (window_x + 50, window_y + 500), (window_x + 550, window_y + 500), 2)
@@ -123,7 +124,7 @@ class Game:
         # 生成非线性动画
         deg = np.arange(0, 93, 3)
         line = np.sin(deg * np.pi / 180)
-        '''
+        
         for i in line - 1:
             self.fps_control()
             self.screen.blit(self.background, (0, 0))
@@ -134,7 +135,7 @@ class Game:
             self.event_handler.load_event()
             self.orbit.draw()
             pygame.display.flip()
-        '''
+        
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(pygame.transform.scale(self.imgs["home-mask"], (pw(1), ph(0.4))), (0, 0))
         self.screen.blit(pygame.transform.scale(self.imgs["logo"], (pw(0.5), ph(0.3))), (pw(0.025), 0))
@@ -143,12 +144,10 @@ class Game:
         # 生成非线性动画
         g = 40.81  # 重力加速度
         dt = 0.016  # 时间步长
-
         h = 1.0  # 初始高度
         t = 0  # 初始时间
         v = 0  # 初始速度
         heights = []  # 高度数组
-
         while t < 1:  # 模拟10秒钟的时间
             heights.append(h)
             v -= g * dt
@@ -173,6 +172,10 @@ class Game:
         self.screen.blit(step_1, (0, 0))
         self.screen.blit(pygame.transform.scale(self.imgs["ninja"], (pw(0.33), ph(0.15))), (pw(0.55), ph(0.1)))
         step_2 = self.screen.copy()
+
+        self.draw_leaderboard(step_2)
+        pygame.display.flip()
+        step_4 = self.screen.copy()
 
         '''
         for i in line - 1:
@@ -200,11 +203,11 @@ class Game:
             self.orbit.draw()
             pygame.display.flip()
 
-        step_4 = self.screen.copy()
-        self.draw_leaderboard()
-        pygame.display.flip()
+        
+        
 
         while 1:
+            print("##")
             for i in np.arange(0, 360, 1):
                 self.fps_control()
                 self.screen.blit(step_3, (0, 0))
@@ -220,11 +223,11 @@ class Game:
 
                 self.event_handler.load_event()
                 self.orbit.draw()
-                #k = get_hit_k(pygame.Rect((pw(0.15), ph(0.58)), (pw(0.1), ph(0.15))), self.orbit)
-                k = get_hit_k(pygame.Rect((pw(0.06), ph(0.75)), (pw(0.05), ph(0.05))), self.orbit)
+                k = get_hit_k(pygame.Rect((pw(0.06), ph(0.75)), (pw(0.09), ph(0.09))), self.orbit)
                 if k:
                     self.music.play("splatter")
                     return "home", []
+                pygame.display.flip()
 
     def save_page(self, score):
         active = True
