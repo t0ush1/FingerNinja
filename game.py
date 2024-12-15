@@ -16,7 +16,8 @@ class Game:
         # 屏幕初始化
         clock = pygame.time.Clock()
         self.fps_control = lambda: clock.tick(60)  # 帧率控制
-        self.screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)  # 全屏显示
+        # self.screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)  # 全屏显示
+        self.screen = pygame.display.set_mode((pw(1), ph(1)), flags=pygame.RESIZABLE)  # 窗口显示
         self.music = Music()
         self.imgs = load_image()
         pygame.display.set_caption("手指水果忍者")
@@ -24,7 +25,7 @@ class Game:
         self.background = pygame.transform.scale(self.imgs["background"], (pw(1), ph(1)))
 
         # 事件注册
-        self.event_handler = EventHandler()
+        self.event_handler = EventHandler(self)
         self.orbit = Orbit(self.screen)
         self.event_handler.register_callback(self.orbit.push)  # 为鼠标轨迹生成器注册回调事件
         self.active_manager = ActiveManager()
@@ -41,8 +42,8 @@ class Game:
             "save": self.save_page,
             "rank": self.rank_page,
         }
-        action = "save"
-        args = [123]
+        action = "home"
+        args = []
         while 1:
             print(action, args)
             action, args = page_map[action](*args)

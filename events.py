@@ -5,8 +5,9 @@ from tools import q_exit, ph
 
 # 全局事件管理类
 class EventHandler:
-    def __init__(self):
+    def __init__(self, game):
         self.push_list = []
+        self.game = game
 
     # 用于注册回调函数
     def register_callback(self, func, *args, **kwargs):
@@ -20,6 +21,15 @@ class EventHandler:
             if a_event.type == pygame.KEYDOWN:
                 if a_event.key == pygame.K_ESCAPE:
                     q_exit()
+            # if a_event.type == pygame.VIDEORESIZE:
+            #     import tools
+            #     tools.sx = a_event.w / tools.screen_x
+            #     tools.sy = a_event.h / tools.screen_y
+            #     self.game.screen = pygame.display.set_mode((a_event.w, a_event.h), flags=pygame.RESIZABLE)  # 窗口显示
+            #     self.game.background = pygame.transform.scale(self.game.imgs["background"], (tools.pw(1), tools.ph(1)))
+            #     self.game.orbit = Orbit(self.game.screen)
+            #     self.game.orbit.draw()
+            #     pygame.display.flip()
             for func, args, kwargs in self.push_list:
                 func(a_event, *args, **kwargs)
 

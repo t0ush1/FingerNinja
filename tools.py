@@ -23,8 +23,19 @@ else:
     # 获取屏幕的宽度和高度
     screen_x = CG.CGDisplayPixelsWide(display_id)
     screen_y = CG.CGDisplayPixelsHigh(display_id)
-pw = lambda x: screen_x * x
-ph = lambda y: screen_y * y
+
+
+sx = 0.7
+sy = 0.7
+
+def getsx():
+    return sx
+
+def getsy():
+    return sy
+
+pw = lambda x: screen_x * x * getsx()
+ph = lambda y: screen_y * y * getsy()
 
 
 # 获取绝对路径，防止pyinstaller打包后找不到文件
