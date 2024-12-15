@@ -50,7 +50,8 @@ class ActiveManager:
 # 全局鼠标轨迹控制类
 class Orbit:
     def __init__(self, screen):
-        self.click = False
+        # self.click = False
+        self.click = True
         self.orbit = []
         self.screen = screen
 
@@ -59,7 +60,8 @@ class Orbit:
             self.click = True
             self.orbit = []
         elif event.type == pygame.MOUSEBUTTONUP:
-            self.click = False
+            # self.click = False
+            self.click = True
         elif event.type == pygame.MOUSEMOTION and self.click:
             self.orbit.append([time.time_ns() / 1000000, event.pos])
 
