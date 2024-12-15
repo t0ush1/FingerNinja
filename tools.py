@@ -27,15 +27,8 @@ else:
 
 sx = 0.7
 sy = 0.7
-
-def getsx():
-    return sx
-
-def getsy():
-    return sy
-
-pw = lambda x: screen_x * x * getsx()
-ph = lambda y: screen_y * y * getsy()
+pw = lambda x: screen_x * x * sx
+ph = lambda y: screen_y * y * sy
 
 
 # 获取绝对路径，防止pyinstaller打包后找不到文件

@@ -17,7 +17,7 @@ class Game:
         clock = pygame.time.Clock()
         self.fps_control = lambda: clock.tick(60)  # 帧率控制
         # self.screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)  # 全屏显示
-        self.screen = pygame.display.set_mode((pw(1), ph(1)), flags=pygame.RESIZABLE)  # 窗口显示
+        self.screen = pygame.display.set_mode((pw(1), ph(1)))  # 窗口显示
         self.music = Music()
         self.imgs = load_image()
         pygame.display.set_caption("手指水果忍者")
