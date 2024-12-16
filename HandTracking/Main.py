@@ -1,24 +1,29 @@
+from screeninfo import get_monitors
+from pynput.mouse import Controller, Button
 import cv2
-import HandTrackingModule as htm
-import pyautogui
 import numpy as np
 import time
+import HandTrackingModule as htm
 
 ##############################
-wCam, hCam = 3456 ,2234
-frameR = 50  # 手部检测区域边界
-smoothening = 1  # 平滑参数
+wCam, hCam = 1280, 720  # 摄像头分辨率
+frameR = 100  # 手部检测区域边界
+smoothening = 5  # 平滑参数
 ##############################
-cap = cv2.VideoCapture(0)  # 若使用笔记本自带摄像头则编号为0，外接摄像头则为1
+cap = cv2.VideoCapture(0)
 cap.set(3, wCam)
 cap.set(4, hCam)
 pTime = 0
 plocX, plocY = 0, 0
 clocX, clocY = 0, 0
 
+# 初始化手势检测器
 detector = htm.handDetector()
-wScr, hScr = pyautogui.size()  # 获取屏幕分辨率
-# print(wScr, hScr)
+
+# 获取屏幕分辨率
+monitor = get_monitors()[0]  # 获取主屏幕信息
+screenWidth, screenHeight = monitor.width, monitor.height
+mouse = Controller()
 
 while True:
     success, img = cap.read()
@@ -34,26 +39,27 @@ while True:
         fingers = detector.fingersUp()
 
         # 3. 若只有食指伸出，则进入移动模式
-        if fingers[1] and fingers[2] == False:
-            # 4. 坐标转换：将食指在窗口坐标转换为鼠标在桌面的坐标
-            # 鼠标坐标
-            x3 = np.interp(x1, (frameR, wCam - frameR), (0, wScr))
-            y3 = np.interp(y1, (frameR, hCam - frameR), (0, hScr))
+        if fingers[1] and not fingers[2]:
+            # 坐标转换：将食指在窗口坐标转换为鼠标在桌面的坐标
+            x3 = np.interp(x1, (frameR, wCam - frameR), (0, screenWidth))
+            y3 = np.interp(y1, (frameR, hCam - frameR), (0, screenHeight))
 
             # 平滑鼠标移动
             clocX = plocX + (x3 - plocX) / smoothening
             clocY = plocY + (y3 - plocY) / smoothening
 
-            pyautogui.moveTo(wScr - clocX, clocY)  # 移动鼠标
-            cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
+            # 使用 pynput 模拟鼠标移动
+            mouse.position = (clocX, clocY)
+
+            # 更新历史位置
             plocX, plocY = clocX, clocY
 
-        # 5. 若食指和中指都伸出，则检测指头距离，距离够短则对应鼠标点击
+        # 4. 若食指和中指都伸出，则检测指头距离，距离够短则对应鼠标点击
         if fingers[1] and fingers[2]:
             length, img, pointInfo = detector.findDistance(8, 12, img)
-            if length < 400:
+            if length < 40:  # 距离阈值
+                mouse.click(Button.left)  # 模拟鼠标左键单击
                 cv2.circle(img, (pointInfo[4], pointInfo[5]), 15, (0, 255, 0), cv2.FILLED)
-                pyautogui.click()  # 鼠标点击
 
     # 显示FPS
     cTime = time.time()
